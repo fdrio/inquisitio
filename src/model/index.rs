@@ -1,10 +1,10 @@
-use super::document::Document;
+use super::document::{Document,ScoreDoc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::DirEntry;
 use std::path::PathBuf;
 use std::time::Instant;
-
+use skiplist::OrderedSkipList;
 pub enum IndexState {
     Initializing,
     Updating,
@@ -53,7 +53,7 @@ impl Index {
                 match idf.get_mut(token) {
                     Some(count) => {
                         *count += 1;
-                    },
+                    }
                     None => {
                         idf.insert(token.clone(), 1);
                     }
@@ -62,9 +62,9 @@ impl Index {
         }
         idf
     }
-    pub fn compute_idf(&self, token: String) -> f64 {
+    pub fn compute_idf(&self, token: &String) -> f64 {
         let total = self.documents.len() as f64;
-        let doc_count = self.idf.get(&token);
+        let doc_count = self.idf.get(token);
         if let Some(doc_count) = doc_count {
             let doc_count = *doc_count as f64;
             let probability = (1.0 + doc_count) / (1.0 + total);
@@ -74,10 +74,19 @@ impl Index {
         0.0
     }
 
-
-    pub fn compute_tf_idf(&self, token: String)->f64{
-        todo!("Need to finish this")
+    pub fn rank(&self, token: String)->OrderedSkipList<ScoreDoc<&Document>>{
+        let mut ranked_docs = OrderedSkipList::new();
+        let idf = self.compute_idf(&token);
+        for doc in self.documents.values(){
+            let tf = doc.compute_tf(&token);
+            let tf_idf = tf*idf;
+            let scored_doc = ScoreDoc::new(tf_idf, doc); 
+            ranked_docs.insert(scored_doc);
+        }
+        
+        ranked_docs
     }
+
 }
 
 #[cfg(test)]
@@ -91,5 +100,15 @@ mod tests {
             "Index::new returned an error: {:?}",
             index.err()
         );
+    }
+
+    #[test]
+    fn test_create_rank()->anyhow::Result<()>{
+        let index = Index::new("./docs", "test-index")?;
+        let ranked_docs = index.rank(String::from("computer"));
+        for doc in ranked_docs.into_iter(){
+            println!("Doc name {}", doc.value.name);
+        }
+        Ok(())
     }
 }

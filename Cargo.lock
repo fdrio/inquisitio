@@ -41,6 +41,7 @@ dependencies = [
  "anyhow",
  "regex",
  "serde",
+ "skiplist",
  "uuid",
 ]
 
@@ -157,6 +158,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "skiplist"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0eec25f46463fcdc5e02f388c2780b1b58e01be81a8378e62ec60931beccc3f6"
+dependencies = [
+ "rand",
 ]
 
 [[package]]

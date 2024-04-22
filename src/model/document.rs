@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io;
 use std::path::PathBuf;
 use std::time::Instant;
+use std::cmp::Ordering;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -18,12 +19,13 @@ type TF = HashMap<String, usize>;
 
 #[derive(Debug)]
 pub struct Document {
-    doc_id: Uuid,
-    created_on: Instant,
-    last_updated_on: Instant,
-    state: DocumentState,
+    pub id: Uuid,
+    pub name: String,
+    pub created_on: Instant,
+    pub last_updated_on: Instant,
+    pub state: DocumentState,
     pub tf: TF,
-    tf_total: usize,
+    pub tf_total: usize,
 }
 
 impl Document {
@@ -48,8 +50,27 @@ impl Document {
         Ok((tf, count))
     }
 
-    pub fn compute_tf(&self, token: String) -> f64 {
-        let res = self.tf.get(&token);
+    pub fn new(path_buf: &PathBuf) -> anyhow::Result<Self> {
+        let doc_id = Uuid::new_v4();
+        let (doc_tf, tf_total) = Document::new_tf(&path_buf)?;
+        if let Some(file_name) = path_buf.file_name().map(|name| name.to_string_lossy().to_string()){
+            let doc = Document {
+                id: doc_id,
+                name: file_name, 
+                created_on: Instant::now(),
+                last_updated_on: Instant::now(),
+                state: DocumentState::Indexed,
+                tf: doc_tf,
+                tf_total: tf_total,
+            };
+            return Ok(doc);
+        }
+        
+        Err(anyhow::format_err!("Error: Could not create document: {doc_id}"))
+    }
+
+    pub fn compute_tf(&self, token: &String) -> f64 {
+        let res = self.tf.get(token);
         if let Some(tf_count) = res {
             let tf_count = *tf_count as f64;
             return tf_count / self.tf_total as f64;
@@ -57,18 +78,42 @@ impl Document {
         0.0
     }
 
-    pub fn new(path_buf: &PathBuf) -> anyhow::Result<Self> {
-        let doc_id = Uuid::new_v4();
-        let (doc_tf, tf_total) = Document::new_tf(&path_buf)?;
-        let doc = Document {
-            doc_id: doc_id,
-            created_on: Instant::now(),
-            last_updated_on: Instant::now(),
-            state: DocumentState::Indexed,
-            tf: doc_tf,
-            tf_total: tf_total,
-        };
-        Ok(doc)
+}
+
+
+#[derive(Debug)]
+pub struct ScoreDoc<T> {
+    priority: f64,
+    pub value: T,
+}
+
+impl<T> ScoreDoc<T>{
+    pub fn new(priority:f64 ,value: T)->ScoreDoc<T>{
+        ScoreDoc{
+            priority:priority,
+            value:value,
+        }
+    }
+}
+
+impl<T> PartialEq for ScoreDoc<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority == other.priority
+    }
+}
+
+impl<T> Eq for ScoreDoc<T> {}
+
+impl<T> PartialOrd for ScoreDoc<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl<T> Ord for ScoreDoc<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse ordering based on priority
+        other.priority.partial_cmp(&self.priority).unwrap()
     }
 }
 
