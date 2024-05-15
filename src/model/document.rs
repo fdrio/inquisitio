@@ -61,7 +61,7 @@ impl Document {
                 last_updated_on: Instant::now(),
                 state: DocumentState::Indexed,
                 tf: doc_tf,
-                tf_total: tf_total,
+                tf_total,
             };
             return Ok(doc);
         }
@@ -90,8 +90,8 @@ pub struct ScoreDoc<T> {
 impl<T> ScoreDoc<T>{
     pub fn new(priority:f64 ,value: T)->ScoreDoc<T>{
         ScoreDoc{
-            priority:priority,
-            value:value,
+            priority,
+            value,
         }
     }
 }
