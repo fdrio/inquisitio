@@ -1,8 +1,6 @@
 use anyhow;
 use regex;
-use std::fs::File;
-use std::io::Cursor;
-use std::io::{self, BufRead};
+use std::io::{BufRead};
 
 pub struct Tokenizer {}
 

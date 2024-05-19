@@ -1,9 +1,6 @@
 use super::document::{Document,ScoreDoc};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::DirEntry;
 use std::path::PathBuf;
-use std::time::Instant;
 use skiplist::OrderedSkipList;
 pub enum IndexState {
     Initializing,
